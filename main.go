@@ -118,11 +118,17 @@ func main() {
 	targetID := targetDoc["_id"].(string)
 	fmt.Printf("Selected document with ID: %s\n", targetID)
 
-	// Create update object
+	// Define all language codes to update
+	languageCodes := []string{"en", "hi", "te", "as", "kok", "gu", "kn", "ml", "mr", "mni", "or", "pa", "ta", "bn", "ks"}
+	
+	// Create update object with all language codes
+	updateFields := bson.M{}
+	for _, lang := range languageCodes {
+		updateFields[fmt.Sprintf("data.%s.application_link.value", lang)] = applicationLink
+	}
+	
 	update := bson.M{
-		"$set": bson.M{
-			"data.en.application_link.value": applicationLink,
-		},
+		"$set": updateFields,
 	}
 
 	fmt.Println("Applying update:", update)
@@ -145,16 +151,23 @@ func main() {
 		log.Fatalf("Error verifying update: %v", err)
 	}
 
-	fmt.Println("\nVerifying update - Application Link after update:")
-	updatedLink := "Not found"
+	fmt.Println("\nVerifying update - Application Links after update:")
+	
+	// Reuse the same language codes for verification
+	
 	if data, ok := updatedDoc["data"].(bson.M); ok {
-		if en, ok := data["en"].(bson.M); ok {
-			if appLink, ok := en["application_link"].(bson.M); ok {
-				if val, ok := appLink["value"].(string); ok {
-					updatedLink = val
+		for _, lang := range languageCodes {
+			updatedLink := "Not found or not updated"
+			
+			// Check if this language exists in the document
+			if langData, ok := data[lang].(bson.M); ok {
+				if appLink, ok := langData["application_link"].(bson.M); ok {
+					if val, ok := appLink["value"].(string); ok {
+						updatedLink = val
+					}
 				}
+				fmt.Printf("%s.application_link.value: %s\n", lang, updatedLink)
 			}
 		}
 	}
-	fmt.Printf("en.application_link.value: %s\n", updatedLink)
 }
