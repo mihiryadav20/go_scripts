@@ -12,18 +12,18 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// displayUsage prints usage instructions and exits
-// displayMainUsage prints usage instructions for the main application and exits
-func displayMainUsage() {
+// displayYouTubeUsage prints usage instructions for YouTube link updater and exits
+// displayHindiYouTubeUsage prints usage instructions for the Hindi YouTube updater and exits
+func displayHindiYouTubeUsage() {
 	fmt.Println(`
-Usage: go run updateApplicationLink.go <slug> <application_link>
+Usage: go run update_hindi_youtube.go <slug> <youtube_link>
 
 Example:
-go run updateApplicationLink.go fpktnk.json https://new-link.com
+go run update_hindi_youtube.go fpktnk.json https://www.youtube.com/watch?v=example
 
 Parameters:
   - slug: Required. The unique identifier for the document (e.g., fpktnk.json)
-  - application_link: Required. The new URL for the application link
+  - youtube_link: Required. The new YouTube video link
 `)
 	os.Exit(1)
 }
@@ -45,18 +45,18 @@ func main() {
 	// Parse command-line arguments
 	args := os.Args[1:]
 	if len(args) == 0 || args[0] == "-h" || args[0] == "--help" || len(args) < 2 {
-		displayMainUsage()
+		displayHindiYouTubeUsage()
 	}
 
 	slug := args[0]
-	applicationLink := args[1]
-	if slug == "" || applicationLink == "" {
-		log.Println("Error: Slug and application link are required")
-		displayMainUsage()
+	youtubeLink := args[1]
+	if slug == "" || youtubeLink == "" {
+		log.Println("Error: Slug and YouTube link are required")
+		displayHindiYouTubeUsage()
 	}
 
 	fmt.Printf("Processing slug: %s\n", slug)
-	fmt.Printf("New application link: %s\n", applicationLink)
+	fmt.Printf("New YouTube link: %s\n", youtubeLink)
 
 	// Connect to MongoDB
 	ctx := context.Background()
@@ -122,8 +122,7 @@ func main() {
 	// Create update object
 	update := bson.M{
 		"$set": bson.M{
-			"data.en.application_link.value": applicationLink,
-			"data.hi.application_link.value": applicationLink,
+			"data.hi.media.video": youtubeLink,
 		},
 	}
 
@@ -147,30 +146,16 @@ func main() {
 		log.Fatalf("Error verifying update: %v", err)
 	}
 
-	fmt.Println("\nVerifying update - Application Links after update:")
-	updatedLinkEn := "Not found"
-	updatedLinkHi := "Not found"
-	
+	fmt.Println("\nVerifying update - YouTube link after update:")
+	updatedLink := "Not found"
 	if data, ok := updatedDoc["data"].(bson.M); ok {
-		// Check English link
-		if en, ok := data["en"].(bson.M); ok {
-			if appLink, ok := en["application_link"].(bson.M); ok {
-				if val, ok := appLink["value"].(string); ok {
-					updatedLinkEn = val
-				}
-			}
-		}
-		
-		// Check Hindi link
 		if hi, ok := data["hi"].(bson.M); ok {
-			if appLink, ok := hi["application_link"].(bson.M); ok {
-				if val, ok := appLink["value"].(string); ok {
-					updatedLinkHi = val
+			if media, ok := hi["media"].(bson.M); ok {
+				if val, ok := media["video"].(string); ok {
+					updatedLink = val
 				}
 			}
 		}
 	}
-	
-	fmt.Printf("en.application_link.value: %s\n", updatedLinkEn)
-	fmt.Printf("hi.application_link.value: %s\n", updatedLinkHi)
+	fmt.Printf("hi.media.video: %s\n", updatedLink)
 }
